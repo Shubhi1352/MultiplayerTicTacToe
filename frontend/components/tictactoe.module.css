@@ -1,0 +1,332 @@
+@import url('https://fonts.googleapis.com/css?family=Amatic+SC|Dawning+of+a+New+Day|League+Script|Loved+by+the+King|Waiting+for+the+Sunrise');
+
+html, body {
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background: white;
+}
+
+.rotated {
+  transform: rotate(-3deg);
+}
+
+.paper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 700px;
+  height: 500px;
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      lightblue,
+      1px,
+      transparent 1px,
+      transparent 20px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      lightblue,
+      1px,
+      white 1px,
+      white 20px
+    );
+  background-size: 20px 20px;
+  background-origin: content-box;
+  padding: 1em auto;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 50px rgba(0, 0, 0, 0.1) inset;
+}
+
+.paper::after,
+.paper::before {
+  z-index: -1;
+  position: absolute;
+  content: '';
+  left: auto;
+  max-width: 300px;
+  background: white;
+}
+
+.paper::after {
+  bottom: 10px;
+  right: 7px;
+  width: 70%;
+  top: 80%;
+  box-shadow: 3px 15px 12px #777;
+  transform: rotate(3deg);
+}
+
+.paper::before {
+  bottom: 10px;
+  left: 7px;
+  width: 70%;
+  top: 80%;
+  box-shadow: -3px 15px 12px #777;
+  transform: rotate(-3deg);
+}
+
+.settings {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+  align-items: center;
+}
+
+.containerDiv {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.sets {
+  margin: 0;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 40px;
+  color: #000033;
+}
+
+.welcome {
+  font-size: 40px;
+}
+
+.chooses {
+  font-size: 40px;
+}
+
+.destiny {
+  font-size: 40px;
+}
+
+.options {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 60%;
+}
+
+.vs {
+  margin: 0;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 40px;
+  color: #000033;
+}
+
+.btn {
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 32px;
+  color: #000033;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0 20px;
+}
+
+.btn:hover {
+  transform: rotate(8deg) scale(1.5);
+}
+
+.board {
+  position: relative;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  width: 50%;
+  height: 300px;
+  margin: 50px auto;
+}
+
+.gameboard {
+  position: absolute;
+  top: 5px;
+  left: 20px;
+  width: 100%;
+  height: auto;
+  stroke: #000033;
+  stroke-width: 1.25px;
+  stroke-miterlimit: 10;
+  fill: none;
+  z-index: 1;
+}
+
+.drawboard {
+  stroke: #000033;
+  stroke-width: 1.25px;
+  stroke-miterlimit: 10;
+  fill: none;
+}
+
+.tile {
+  margin: 5%;
+  width: 22%;
+  height: 22%;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.svgTile {
+  width: 550%;
+  height: 550%;
+  fill: none;
+  stroke: #000033;
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.strokeX {
+  stroke: #000033;
+  stroke-width: 2.5;
+  stroke-dasharray: 150;
+  stroke-dashoffset: 150;
+  animation: writingEffect 0.6s ease-out forwards;
+}
+
+.strokeO {
+  stroke: #000033;
+  stroke-width: 2.5;
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: writingEffect 0.8s ease-out forwards;
+}
+
+@keyframes writingEffect {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animating {
+  animation: tileFlip 0.3s ease-out forwards;
+}
+
+@keyframes tileFlip {
+  0% {
+    transform: scale(1) rotateY(0deg);
+  }
+  100% {
+    transform: scale(1) rotateY(360deg);
+  }
+}
+
+.winner {
+  width: 300px;
+  height: auto;
+  margin: auto;
+  margin-top: 30px;
+  position: absolute;
+  align-self: flex-start;
+  text-align: center;
+  transform: rotate(5deg);
+  z-index: 100;
+  top: 20px;
+}
+
+.winner h1 {
+  margin: 0;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 48px;
+  color: #000033;
+}
+
+.buttonGroup {
+  position: absolute;
+  bottom: -90px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 60px;
+  z-index: 10;
+}
+
+.resetBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.resetBtn:hover {
+  transform: rotate(-8deg) scale(1.5);
+}
+
+.resetBtn h1 {
+  margin: 0;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 32px;
+  color: #000033;
+}
+
+.homeBtn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.homeBtn:hover {
+  transform: rotate(8deg) scale(1.5);
+}
+
+.homeBtn h1 {
+  margin: 0;
+  font-family: 'Waiting for the Sunrise', cursive;
+  font-size: 32px;
+  color: #000033;
+}
+
+.boardImage {
+  width: 180px;
+  height: 180px;
+  margin: 20px 0;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .paper {
+    width: 90%;
+    height: auto;
+  }
+
+  .sets {
+    font-size: 28px;
+  }
+
+  .btn {
+    font-size: 24px;
+  }
+
+  .board {
+    width: 80%;
+    height: 250px;
+  }
+
+  .boardImage {
+    width: 140px;
+    height: 140px;
+  }
+}
