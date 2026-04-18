@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\"",
+    "watch": "rollup -c -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-typescript": "^11.1.0",
+    "@types/node": "^25.6.0",
+    "nakama-runtime": "https://github.com/heroiclabs/nakama-common.git",
+    "rollup": "^4.0.0",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.0"
+  }
+}

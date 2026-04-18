@@ -1,0 +1,1 @@
+import 'nakama-runtime';

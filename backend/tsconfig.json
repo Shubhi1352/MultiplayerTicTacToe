@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./build",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": [
+      "./node_modules"
+    ],
+    "types": [
+      "nakama-runtime"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

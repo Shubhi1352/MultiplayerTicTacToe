@@ -1,0 +1,27 @@
+name: nakama
+
+logger:
+  level: "info"
+  stdout: true
+
+database:
+  addresses:
+    - "postgres:5432"
+  max_open_conns: 10
+  max_idle_conns: 100
+  conn_max_lifetime_ms: 3600000
+
+console:
+  port: 7351
+
+socket:
+  server_key: "defaultkey"
+  port: 7350
+
+runtime:
+  http_key: "defaultkey"
+  js_entrypoint: "build/main.js"
+
+session:
+  token_expiry_sec: 60
+  refresh_expiry_sec: 3600
