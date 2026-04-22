@@ -2,21 +2,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./build",
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "target": "ES2015",
+    "module": "None",
     "strict": false,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "typeRoots": [
-      "./node_modules"
-    ],
-    "types": [
-      "nakama-runtime"
-    ]
+    "typeRoots": ["./node_modules"],
+    "types": ["nakama-runtime"]
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

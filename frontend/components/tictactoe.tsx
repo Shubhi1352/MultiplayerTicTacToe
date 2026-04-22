@@ -1,514 +1,375 @@
 'use client';
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import styles from './tictactoe.module.css';
+import NicknameScreen from './NicknameScreen';
+import ModeSelect from './ModeSelect';
+import Leaderboard from './Leaderboard';
+import { login, register, connectSocket, findMatch } from '@/lib/nakama';
+import { useNakamaMatch } from '@/hooks/useNakamaMatch';
 
-interface GameState {
-  board: (string | number)[];
-  game: boolean;
-  player1: boolean;
-  player2: boolean;
-  human: boolean;
-  computer: boolean;
-  player1val: string | null;
-  player2val: string | null;
-  humVal: string | null;
-  comVal: string | null;
-  winner: string;
-  showSettings: boolean;
-  showChooses: boolean;
-  showDestiny: boolean;
-  showBoard: boolean;
-}
+type Screen = 'nickname' | 'mode' | 'leaderboard' | 'waiting' | 'game';
 
-const WINNING_COMBINATIONS = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
+const WINNING_COMBOS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
 ];
 
-const TicTacToe = () => {
-  const [gameState, setGameState] = useState<GameState>({
-    board: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    game: false,
-    player1: true,
-    player2: false,
-    human: false,
-    computer: false,
-    player1val: null,
-    player2val: null,
-    humVal: null,
-    comVal: null,
-    winner: '',
-    showSettings: true,
-    showChooses: false,
-    showDestiny: false,
-    showBoard: false,
-  });
-
-  const [animatingTiles, setAnimatingTiles] = useState<Set<string>>(new Set());
-  const [winningLineIndex, setWinningLineIndex] = useState<number | null>(null);
-  const gameRef = useRef(gameState);
-
-  useEffect(() => {
-    gameRef.current = gameState;
-  }, [gameState]);
-
-  const checkWin = (board: (string | number | null)[], player: boolean | string): boolean => {
-    let value: string | null = null;
-
-    if (gameRef.current.computer) {
-      value = player === gameRef.current.human ? gameRef.current.humVal : gameRef.current.comVal;
-    } else if (gameRef.current.human) {
-      value = player === gameRef.current.player1 ? gameRef.current.player1val : gameRef.current.player2val;
-    }
-
-    for (let x = 0; x < 8; x++) {
-      let win = true;
-      for (let y = 0; y < 3; y++) {
-        if (board[WINNING_COMBINATIONS[x][y]] !== value) {
-          win = false;
-          break;
-        }
-      }
-      if (win) {
-        setWinningLineIndex(x);
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const checkBoard = (board: (string | number | null)[]): boolean => {
-    for (let i = 0; i < board.length; i++) {
-      if (board[i] === 0) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const updateScore = (board: (string | number)[], player: boolean | string) => {
-    if (gameRef.current.computer) {
-      if (player === gameRef.current.computer) {
-        if (checkWin(board, player)) {
-          setGameState((prev) => ({ ...prev, game: false }));
-          setTimeout(() => {
-            setGameState((prev) => ({ ...prev, winner: 'You lost!' }));
-          }, 1400);
-          return;
-        }
-      } else if (player === gameRef.current.human) {
-        if (checkWin(board, player)) {
-          setGameState((prev) => ({ ...prev, game: false }));
-          setTimeout(() => {
-            setGameState((prev) => ({ ...prev, winner: 'You won!' }));
-          }, 1000);
-          return;
-        }
-      }
-    } else if (gameRef.current.human) {
-      if (player === gameRef.current.player1) {
-        if (checkWin(board, player)) {
-          setGameState((prev) => ({ ...prev, game: false }));
-          setTimeout(() => {
-            setGameState((prev) => ({ ...prev, winner: 'Player 1 won!' }));
-          }, 1000);
-          return;
-        }
-      } else {
-        if (checkWin(board, player)) {
-          setGameState((prev) => ({ ...prev, game: false }));
-          setTimeout(() => {
-            setGameState((prev) => ({ ...prev, winner: 'Player 2 won!' }));
-          }, 1000);
-          return;
-        }
-      }
-    }
-
-    if (checkBoard(board)) {
-      setTimeout(() => {
-        setGameState((prev) => ({ ...prev, winner: 'Tie!' }));
-      }, 1000);
-    }
-  };
-
-  const setPlayer = (signNumber: number ) => {
-    const newBoard = [...gameRef.current.board]; 
-
-    if (gameRef.current.player1) {
-      if (gameRef.current.player1val !== null) {
-        newBoard[signNumber] = gameRef.current.player1val;
-        setAnimatingTiles((prev) => new Set(prev).add(`${gameRef.current.player1val}${signNumber}`));
-        updateScore(newBoard, gameRef.current.player1);
-        setGameState((prev) => ({
-          ...prev,
-          board: newBoard,
-          player1: false,
-          player2: true,
-        }));
-      }
-    } else {
-      if (gameRef.current.player2val !== null) {
-        newBoard[signNumber] = gameRef.current.player2val;
-        setAnimatingTiles((prev) => new Set(prev).add(`${gameRef.current.player2val}${signNumber}`));
-        updateScore(newBoard, gameRef.current.player2);
-        setGameState((prev) => ({
-          ...prev,
-          board: newBoard,
-          player1: true,
-          player2: false,
-        }));
-      }
-    }
-  };
-
-  const ai = () => {
-    if (gameRef.current.game) {
-      minimax(gameRef.current.board, 0, gameRef.current.computer as boolean);
-    }
-  };
-
-  const set = (index: number, player: boolean | string) => {
-    if (gameRef.current.game) {
-      if (gameRef.current.board[index] === 0) {
-        if (gameRef.current.computer ) {
-          if (player === gameRef.current.human && gameRef.current.humVal !== null) {
-            const newBoard = [...gameRef.current.board];
-            newBoard[index] = gameRef.current.humVal;
-            setAnimatingTiles((prev) => new Set(prev).add(`${gameRef.current.humVal}${index}`));
-            updateScore(newBoard, player);
-            setGameState((prev) => ({ ...prev, board: newBoard }));
-            setTimeout(() => ai(), 500);
-          } else if (gameRef.current.comVal !== null){
-            const newBoard = [...gameRef.current.board];
-            newBoard[index] = gameRef.current.comVal;
-            setAnimatingTiles((prev) => new Set(prev).add(`${gameRef.current.comVal}${index}`));
-            updateScore(newBoard, player);
-            setGameState((prev) => ({ ...prev, board: newBoard }));
-          }
-        }
-      }
-    }
-  };
-
-  const minimax = (
-    actualBoard: (string | number)[],
-    depth: number,
-    player: boolean
-  ): number => {
-    if (checkWin(actualBoard, gameRef.current.computer)) {
-      return 10 - depth;
-    } else if (checkWin(actualBoard, gameRef.current.human)) {
-      return -10 + depth;
-    } else if (checkBoard(actualBoard)) {
-      return 0;
-    }
-
-    let max = player ? -Infinity : Infinity;
-    let bestIndex = 0;
-
-    for (let i = 0; i < actualBoard.length; i++) {
-      const copyBoard = [...actualBoard];
-
-      if (copyBoard[i] === 0) {
-        const value = player === gameRef.current.computer ? gameRef.current.comVal : gameRef.current.humVal;
-        if (value !== null) {
-          copyBoard[i] = value;
-
-          const minimaxScore = minimax(copyBoard, depth + 1, !player);
-
-          if (player) {
-            if (minimaxScore > max) {
-              max = minimaxScore;
-              bestIndex = i;
-            }
-          } else {
-            if (minimaxScore < max) {
-              max = minimaxScore;
-              bestIndex = i;
-            }
-          }
-        }
-      }
-    }
-
-    if (depth === 0) {
-      set(bestIndex, gameRef.current.computer);
-    }
-
-    return max;
-  };
-
-  const handleTileClick = (index: number) => {
-    if (!gameRef.current.game) return;
-    if (gameRef.current.board[index] !== 0) return;
-
-    if (gameRef.current.human) {
-      setPlayer(index);
-    } else if (gameRef.current.computer) {
-      set(index, gameRef.current.human);
-    }
-  };
-
-  const switchScreen = (screen: 'chooses' | 'destiny' | 'board') => {
-    if (screen === 'chooses') {
-      setGameState((prev) => ({
-        ...prev,
-        showSettings: false,
-        showChooses: true,
-      }));
-    } else if (screen === 'destiny') {
-      setGameState((prev) => ({
-        ...prev,
-        showChooses: false,
-        showDestiny: true,
-      }));
-    } else if (screen === 'board') {
-      setGameState((prev) => ({
-        ...prev,
-        showSettings: false,
-        showDestiny: false,
-        showBoard: true,
-        game: true,
-      }));
-    }
-  };
-
-  const handleClick = (id: string) => {
-    if (id === 'play') {
-      switchScreen('chooses');
-    } else if (id === 'reset') {
-      resetGame();
-    } else if (id === 'home') {
-      goHome();
-    } else if (id === 'human') {
-      setGameState((prev) => ({
-        ...prev,
-        human: true,
-        computer: false,
-      }));
-      setTimeout(() => switchScreen('destiny'), 50);
-    } else if (id === 'computer') {
-      setGameState((prev) => ({
-        ...prev,
-        human: false,
-        computer: true,
-      }));
-      setTimeout(() => switchScreen('destiny'), 50);
-    } else if (gameRef.current.computer) {
-      if (id === 'x' || id === 'o') {
-        if (id === 'x') {
-          setGameState((prev) => ({
-            ...prev,
-            humVal: 'x',
-            comVal: 'o',
-          }));
-        } else {
-          setGameState((prev) => ({
-            ...prev,
-            humVal: 'o',
-            comVal: 'x',
-          }));
-        }
-        setTimeout(() => switchScreen('board'), 50);
-      }
-    } else if (gameRef.current.human) {
-      if (id === 'x' || id === 'o') {
-        if (id === 'x') {
-          setGameState((prev) => ({
-            ...prev,
-            player1val: 'x',
-            player2val: 'o',
-          }));
-        } else {
-          setGameState((prev) => ({
-            ...prev,
-            player1val: 'o',
-            player2val: 'x',
-          }));
-        }
-        setTimeout(() => switchScreen('board'), 50);
-      }
-    }
-  };
-
-  const resetGame = () => {
-    setGameState((prev) => ({
-      ...prev,
-      board: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      game: true,
-      player1: true,
-      player2: false,
-      winner: '',
-    }));
-    setWinningLineIndex(null);
-    setAnimatingTiles(new Set());
-  };
-
-  const goHome = () => {
-    setGameState({
-      board: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-      game: false,
-      player1: true,
-      player2: false,
-      human: false,
-      computer: false,
-      player1val: null,
-      player2val: null,
-      humVal: null,
-      comVal: null,
-      winner: '',
-      showSettings: true,
-      showChooses: false,
-      showDestiny: false,
-      showBoard: false,
-    });
-    setWinningLineIndex(null);
-    setAnimatingTiles(new Set());
-  };
-
-  const X_PATHS = [
+const X_PATHS = [
     { d: 'M183.1,4.6c-3.7,10.4-7.8,20.7-12.5,30.7' },
     { d: 'M159.6,6.8c6.9,9.8,15.4,18.5,24.9,25.8' },
-  ];
-
-  const O_PATHS = [
+];
+const O_PATHS = [
     { d: 'M98.5,17.2c-2.7,0.6-5.2-1.6-7.8-2.5c-5.2-1.7-10.7,1.7-14.1,6c-5.2,6.5-7.1,16.6-1.8,23c1.1,1.3,2.4,2.4,4.1,2.7c2.6,0.5,5.2-1,7.4-2.6c6.7-5,12.6-10.9,17.6-17.6c0.9-1.2,1.7-2.4,2-3.9c0.4-2.3-1-4.6-2.8-6c-1.9-1.4-4.1-2.1-6.4-2.8' },
-  ];
+];
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.rotated}>
-        <div className={styles.paper}>
-          {gameState.showSettings && (
-            <div id="settings" className={styles.settings}>
-              <div className={styles.containerDiv}>
-                <h1 className={`${styles.sets} ${styles.welcome}`}>THIS IS Tic Tac Toe!</h1>
-              </div>
-              <div className={styles.containerDiv}>
-                <img src="/tictactoe-board.png" alt="Tic Tac Toe Board" className={styles.boardImage} />
-              </div>
-              <div className={styles.containerDiv}>
-                <button
-                  className={`${styles.sets} ${styles.btn} ${styles.welcome}`}
-                  id="play"
-                  onClick={() => handleClick('play')}
-                >
-                  Let&apos;s play!
-                </button>
-              </div>
-            </div>
-          )}
+export default function TicTacToe() {
+    const [screen, setScreen] = useState<Screen>('nickname');
+    const [authLoading, setAuthLoading] = useState(false);
+    const [nickname, setNickname] = useState('');
+    const [animatingTiles, setAnimatingTiles] = useState<Set<number>>(new Set());
 
-          {gameState.showChooses && (
-            <div id="settings" className={styles.settings}>
-              <div className={styles.containerDiv}>
-                <h1 className={`${styles.sets} ${styles.chooses}`}>CHOOSE YOUR OPPONENT</h1>
-              </div>
-              <div className={styles.containerDiv}>
-                <img src="/tictactoe-board.png" alt="Tic Tac Toe Board" className={styles.boardImage} />
-              </div>
-              <div className={styles.containerDiv}>
-                <div className={`${styles.sets} ${styles.options} ${styles.chooses}`}>
-                  <button className={styles.btn} id="human" onClick={() => handleClick('human')}>
-                    human
-                  </button>
-                  <h1 className={styles.vs}>vs</h1>
-                  <button className={styles.btn} id="computer" onClick={() => handleClick('computer')}>
-                    computer
-                  </button>
+    const { state, joinMatch, sendMove, leaveMatch } = useNakamaMatch();
+    const [searchElapsed, setSearchElapsed] = useState(0);
+    const [searchTimedOut, setSearchTimedOut] = useState(false);
+    const searchTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [lastOptions, setLastOptions] = useState<{ai: boolean; difficulty: string; timed: boolean} | null>(null);
+
+    // ── Auth ─────────────────────────────────────────────────
+    const handleLogin = useCallback(async (username: string, password: string) => {
+        setAuthLoading(true);
+        try {
+            const result = await login(username, password); // login() should return { username }
+            await connectSocket();
+            setNickname(result.username); // use server-returned username, not raw input
+            setScreen('mode');
+        } catch (e: any) {
+            throw e;
+        } finally {
+            setAuthLoading(false);
+        }
+    }, []);
+    
+    const handleRegister = useCallback(async (username: string, password: string) => {
+        setAuthLoading(true);
+        try {
+            const result = await register(username, password); // register() should return { username }
+            await connectSocket();
+            setNickname(result.username); // use server-returned username
+            setScreen('mode');
+        } catch (e: any) {
+            throw e;
+        } finally {
+            setAuthLoading(false);
+        }
+    }, []);
+
+    // ── Find match ───────────────────────────────────────────
+    const handleModeSelect = useCallback(async (options: {
+        ai: boolean; difficulty: string; timed: boolean;
+    }) => {
+        setLastOptions(options);  
+        setScreen('waiting');
+        try {
+            await connectSocket();
+            const matchId = await findMatch(options);
+            try{
+              await joinMatch(matchId);
+            } catch (e: any) {
+                if (e?.code === 5) {
+                    const freshMatchId = await findMatch(options);
+                    await joinMatch(freshMatchId);
+                } else {
+                    throw e;
+                }
+            }
+        } catch (e) {
+            console.error('Match error:', e);
+            setScreen('mode');
+        }
+    }, [joinMatch]);
+
+    useEffect(() => {  
+        if (screen === 'waiting' && state.gameStarted) {
+            setScreen('game');
+        }
+    }, [state.gameStarted, screen]);
+
+    // ── Move ─────────────────────────────────────────────────
+    const handleTileClick = useCallback((index: number) => {
+        const { board, turn, myUserId, gameOver } = state;
+        if (gameOver) return;
+        if (board[index] !== null) return;
+        if (turn !== myUserId) return;
+
+        setAnimatingTiles(prev => new Set(prev).add(index));
+        sendMove(index);
+    }, [state, sendMove]);
+
+    // ── Leave ────────────────────────────────────────────────
+    const handleHome = useCallback(async () => {
+        await leaveMatch();
+        setAnimatingTiles(new Set());
+        setScreen('mode');
+    }, [leaveMatch]);
+
+    const handlePlayAgain = useCallback(async () => {
+        await leaveMatch();
+        setAnimatingTiles(new Set());
+        setScreen('mode');
+    }, [leaveMatch]);
+
+    // ── Search timeout ───────────────────────────────────────
+    
+    useEffect(() => {
+        if (screen === 'waiting') {
+            setSearchElapsed(0);
+            setSearchTimedOut(false);
+            searchTimerRef.current = setInterval(() => {
+                setSearchElapsed(prev => {
+                    if (prev >= 299) { // 5 minutes = 300 seconds
+                        clearInterval(searchTimerRef.current!);
+                        setSearchTimedOut(true);
+                        return 300;
+                    }
+                    return prev + 1;
+                });
+            }, 1000);
+        } else {
+            if (searchTimerRef.current) {
+                clearInterval(searchTimerRef.current);
+                searchTimerRef.current = null;
+            }
+        }
+        return () => {
+            if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+        };
+    }, [screen]);
+
+    // ── Winner label ─────────────────────────────────────────
+    const getWinnerLabel = () => {
+        if (!state.gameOver) return '';
+        if (!state.winner) return '';
+        if (state.opponentLeft) return 'Opponent left — You win!';
+        if (state.winner === 'draw') return "It's a Draw!";
+        if (state.winner === 'ai-bot') return '🤖 AI wins!';
+        const winnerName = state.usernames[state.winner] || state.winner;
+        return state.winner === state.myUserId ? '🎉 You win!' : `${winnerName} wins!`;
+    };
+
+    // ── Render screens ────────────────────────────────────────
+
+    if (screen === 'nickname') {
+        return (
+            <div className={styles.container}>
+                <div className={styles.rotated}>
+                    <div className={styles.paper}>
+                        <NicknameScreen
+                            onLogin={handleLogin}
+                            onRegister={handleRegister}
+                            loading={authLoading}
+                        />
+                    </div>
                 </div>
-              </div>
             </div>
-          )}
+        );
+    }
 
-          {gameState.showDestiny && (
-            <div id="settings" className={styles.settings}>
-              <div className={styles.containerDiv}>
-                <h1 className={`${styles.sets} ${styles.destiny}`}>Choose your destiny</h1>
-              </div>
-              <div className={styles.containerDiv}>
-                <img src="/tictactoe-board.png" alt="Tic Tac Toe Board" className={styles.boardImage} />
-              </div>
-              <div className={styles.containerDiv}>
-                <div className={`${styles.sets} ${styles.options} ${styles.destiny}`}>
-                  <button className={styles.btn} id="x" onClick={() => handleClick('x')}>
-                    X
-                  </button>
-                  <h1 className={styles.vs}>vs</h1>
-                  <button className={styles.btn} id="o" onClick={() => handleClick('o')}>
-                    O
-                  </button>
-                </div>
-              </div>
+    if (screen === 'mode') {
+        return (
+            <div className={styles.container}>
+                <div className={styles.rotated}>
+                    <div className={styles.paper}>
+                        <ModeSelect
+                            onSelect={handleModeSelect}
+                            onLeaderboard={() => setScreen('leaderboard')}
+                        />
+                    </div>
+                </div>  
             </div>
-          )}
+        );
+    }
 
-          {gameState.showBoard && (
-            <>
-              <div id="winner" className={styles.winner}>
-                <h1>{gameState.winner}</h1>
-              </div>
-              <div id="board" className={styles.board}>
-                <svg
-                  version="1.1"
-                  id="gameboard"
-                  viewBox="0 0 231.9 179.6"
-                  className={styles.gameboard}
-                >
-                  <g id="tictactoe">
-                    <path className={styles.drawboard} d="M59.5,0c-3.6,60.8-1.8,122,5.3,182.5" />
-                    <path className={styles.drawboard} d="M131.9,1.3c7.5,22.9,6.3,47.5,5,71.5c-1.7,32.6-3.5,65.2-5.2,97.8" />
-                    <path className={styles.drawboard} d="M0,75.6c75.3-12.8,151.1-22.8,227.2-30.1" />
-                    <path className={styles.drawboard} d="M-0.8,128.8c77.9-0.5,155.7-6.6,232.7-18.4" />
-                  </g>
-                </svg>
-
-                {gameState.board.map((cell, index) => (
-                  <div
-                    key={index}
-                    className={`${styles.tile} ${
-                      animatingTiles.has(`${cell}${index}`) ? styles.animating : ''
-                    }`}
-                    onClick={() => handleTileClick(index)}
-                  >
-                    {cell !== 0 && (
-                      <svg viewBox="0 0 231.9 179.6" className={styles.svgTile}>
-                        {cell === 'x' &&
-                          X_PATHS.map((path, i) => (
-                            <path key={i} d={path.d} className={styles.strokeX} />
-                          ))}
-                        {cell === 'o' &&
-                          O_PATHS.map((path, i) => (
-                            <path key={i} d={path.d} className={styles.strokeO} />
-                          ))}
-                      </svg>
-                    )}
-                  </div>
-                ))}
-
-                <div className={styles.buttonGroup}>
-                  <button id="home" className={`${styles.btn} ${styles.homeBtn}`} onClick={() => handleClick('home')}>
-                    <h1>home</h1>
-                  </button>
-                  <button id="reset" className={`${styles.btn} ${styles.resetBtn}`} onClick={() => handleClick('reset')}>
-                    <h1>reset</h1>
-                  </button>
+    if (screen === 'leaderboard') {
+        return (
+            <div className={styles.container}>
+                <div className={styles.rotated}>
+                    <div className={styles.paper}>
+                        <Leaderboard onBack={() => setScreen('mode')} />
+                    </div>
                 </div>
-              </div>
-            </>
-          )}
+            </div>
+        );
+    }
+
+    if (screen === 'waiting') {
+        const mins = Math.floor(searchElapsed / 60);
+        const secs = searchElapsed % 60;
+        const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+        const isPvP = lastOptions && !lastOptions.ai;
+
+        return (
+            <div className={styles.container}>
+                <div className={styles.rotated}>
+                    <div className={styles.paper}>
+                        <div className={styles.settings}>
+                            <div className={styles.containerDiv}>
+                                {!searchTimedOut ? (
+                                    <>
+                                        <h1 className={`${styles.sets} ${styles.welcome}`}>
+                                            {isPvP ? 'Searching for opponent...' : 'Starting game...'}
+                                        </h1>
+                                        {isPvP && (
+                                            <p style={{ textAlign: 'center', marginTop: '8px', fontFamily: "'Waiting for the Sunrise', cursive", fontSize: '24px', color: '#000033' }}>
+                                                {timeStr}
+                                            </p>
+                                        )}
+                                        <button className={styles.btn} style={{ marginTop: '20px' }} onClick={() => {
+                                            setScreen('mode');
+                                        }}>
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h1 className={`${styles.sets} ${styles.welcome}`}>
+                                            No opponent found
+                                        </h1>
+                                        <p style={{ textAlign: 'center', marginTop: '8px', fontFamily: "'Waiting for the Sunrise', cursive", fontSize: '24px', color: '#000033' }}>
+                                            Search timed out after 5 minutes
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '40px', marginTop: '24px' }}>
+                                            <button className={styles.btn} onClick={() => {
+                                                setScreen('mode');
+                                            }}>
+                                                home
+                                            </button>
+                                            <button className={styles.btn} onClick={() => {
+                                                if (lastOptions) {
+                                                    handleModeSelect(lastOptions);
+                                                } else {
+                                                    setScreen('mode');
+                                                }
+                                            }}>
+                                                play again
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ── Game screen ───────────────────────────────────────────
+    const { board, marks, usernames, myUserId, turn, timedMode, timeLeft,
+            commentary, gameOver, winningPos, difficulty } = state;
+
+    const isMyTurn = turn === myUserId;
+    const myMark = marks[myUserId] || '?';
+    const turnName = usernames[turn] || (turn === 'ai-bot' ? '🤖 AI' : turn);
+    const winnerLabel = getWinnerLabel();
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.gameWrapper}>
+                <div className={styles.rotated}>
+                    <div className={styles.paper}>
+                        {/* Status bar */}
+                        <div style={{ textAlign: 'center', padding: '4px 0', fontSize: '0.85rem' }}>
+                            <span>You: <strong>{nickname}</strong> ({myMark.toUpperCase()})</span>
+                            {timedMode && !gameOver && (
+                                <span style={{
+                                    marginLeft: '12px',
+                                    color: timeLeft <= 10 ? 'red' : 'inherit',
+                                    fontWeight: timeLeft <= 10 ? 'bold' : 'normal'
+                                }}>
+                                    ⏱️ {timeLeft}s
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Turn indicator */}
+                        {!gameOver && (
+                            <div style={{ textAlign: 'center', fontSize: '0.85rem', marginBottom: '4px' }}>
+                                {isMyTurn ? '✅ Your turn!' : `⏳ ${turnName}'s turn`}
+                            </div>
+                        )}
+
+                        {/* Winner banner */}
+                        <div id="winner" className={styles.winner}>
+                            <h1>{winnerLabel}</h1>
+                        </div>
+
+                        {/* Board */}
+                        <div id="board" className={styles.board}>
+                            <svg version="1.1" viewBox="0 0 231.9 179.6" className={styles.gameboard}>
+                                <g id="tictactoe">
+                                    <path className={styles.drawboard} d="M59.5,0c-3.6,60.8-1.8,122,5.3,182.5" />
+                                    <path className={styles.drawboard} d="M131.9,1.3c7.5,22.9,6.3,47.5,5,71.5c-1.7,32.6-3.5,65.2-5.2,97.8" />
+                                    <path className={styles.drawboard} d="M0,75.6c75.3-12.8,151.1-22.8,227.2-30.1" />
+                                    <path className={styles.drawboard} d="M-0.8,128.8c77.9-0.5,155.7-6.6,232.7-18.4" />
+                                </g>
+                            </svg>
+
+                            {board.map((cell, index) => {
+                                const isWinningCell = winningPos?.includes(index);
+                                return (
+                                    <div
+                                        key={index}
+                                        className={`${styles.tile} ${animatingTiles.has(index) ? styles.animating : ''}`}
+                                        onClick={() => handleTileClick(index)}
+                                        style={{
+                                            cursor: (!gameOver && isMyTurn && cell === null) ? 'pointer' : 'default',
+                                            opacity: isWinningCell ? 1 : (gameOver && winningPos ? 0.4 : 1),
+                                            filter: isWinningCell ? 'drop-shadow(0 0 6px gold)' : 'none',
+                                        }}
+                                    >
+                                        {cell !== null && (
+                                            <svg viewBox={cell === 'X' ? "150 -2 50 45" : "72 8 48 48"} className={styles.svgTile}>
+                                                {cell === 'X' && X_PATHS.map((path, i) => (
+                                                    <path key={i} d={path.d} className={styles.strokeX} />
+                                                ))}
+                                                {cell === 'O' && O_PATHS.map((path, i) => (
+                                                    <path key={i} d={path.d} className={styles.strokeO} />
+                                                ))}
+                                            </svg>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            <div className={styles.buttonGroup}>
+                                <button className={`${styles.btn} ${styles.homeBtn}`} onClick={handleHome}>
+                                    <h1>home</h1>
+                                </button>
+                                {gameOver && (
+                                    <button className={`${styles.btn} ${styles.resetBtn}`} onClick={handlePlayAgain}>
+                                        <h1>play again</h1>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {/* END of rotated div — sticky note goes RIGHT HERE, still inside gameWrapper */}
+
+                {lastOptions?.ai && (
+                    <div className={styles.stickyNote}>
+                        <div className={styles.stickyHeader}>🤖 AI says</div>
+                        <div className={styles.stickyText}>
+                            {commentary
+                                ? `"${commentary}"`
+                                : gameOver
+                                    ? ''
+                                    : isMyTurn ? 'your move, human...' : 'thinking...'}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
-      </div>
-    </div>
-  );
-};
-
-export default TicTacToe;
+    );
+}

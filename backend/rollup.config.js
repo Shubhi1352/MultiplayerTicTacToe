@@ -8,6 +8,7 @@ export default {
         file: 'build/main.js',
         format: 'iife',
         name: 'nakamaBundle',
+        extend: true,
         sourcemap: false,
     },
     plugins: [
