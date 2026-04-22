@@ -3,8 +3,9 @@ import { Client, Session } from '@heroiclabs/nakama-js';
 const NAKAMA_HOST = process.env.NEXT_PUBLIC_NAKAMA_HOST || 'localhost';
 const NAKAMA_PORT = process.env.NEXT_PUBLIC_NAKAMA_PORT || '7350';
 const SERVER_KEY  = process.env.NEXT_PUBLIC_NAKAMA_SERVER_KEY || 'defaultkey';
+const NAKAMA_SSL  = process.env.NEXT_PUBLIC_NAKAMA_SSL === 'true';
 
-const client = new Client(SERVER_KEY, NAKAMA_HOST, NAKAMA_PORT, false);
+const client = new Client(SERVER_KEY, NAKAMA_HOST, NAKAMA_PORT, NAKAMA_SSL);
 let session: Session | null = null;
 let socket: any = null;
 let socketConnected = false;
@@ -46,7 +47,7 @@ export async function connectSocket(): Promise<void> {
     if (!session) throw new Error('Not authenticated');
     if (socket && socket.isConnected) return;
     console.log('Creating socket with explicit settings...');
-    socket = client.createSocket(false, true); // Use SSL=false, autoConnect=true
+    socket = client.createSocket(NAKAMA_SSL, true); // Use SSL=false, autoConnect=true
     console.log('Socket created, connecting...');
     try {
         await socket.connect(session, true);
