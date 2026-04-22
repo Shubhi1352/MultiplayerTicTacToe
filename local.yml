@@ -6,7 +6,8 @@ logger:
 
 database:
   addresses:
-    - "postgres:5432"
+    - "ep-morning-boat-anm37grk-pooler.c-6.us-east-1.aws.neon.tech:5432"
+  ssl_mode: "require"
   max_open_conns: 10
   max_idle_conns: 100
   conn_max_lifetime_ms: 3600000
@@ -32,6 +33,7 @@ cors:
   allowed_origins:
     - "http://localhost:3000"
     - "http://127.0.0.1:3000"
+    - "https://MultiplayerTicTacToeFrontend.onrender.com"
   allowed_methods:
     - "GET"
     - "POST"
