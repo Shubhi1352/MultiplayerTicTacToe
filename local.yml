@@ -6,7 +6,7 @@ logger:
 
 database:
   addresses:
-    - "ep-morning-boat-anm37grk-pooler.c-6.us-east-1.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-morning-boat-anm37grk-pooler"
+    - "ep-morning-boat-anm37grk-pooler.c-6.us-east-1.aws.neon.tech:5432"
   ssl_mode: "require"
   max_open_conns: 10
   max_idle_conns: 100
